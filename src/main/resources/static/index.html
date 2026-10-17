@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Library Management System</title>
+<style>
+  :root {
+    --primary: #3b5bdb;
+    --primary-dark: #2f4bc0;
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --green: #16a34a;
+    --red: #dc2626;
+    --amber: #d97706;
+    --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif; font-size: 15px;
+  }
+  header {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff; padding: 20px 28px;
+  }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 0; opacity: .9; font-size: 13px; }
+  nav { display: flex; gap: 8px; padding: 12px 28px; background: var(--card);
+        border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
+  .tab {
+    border: 1px solid var(--border); background: #fff; color: var(--text);
+    padding: 8px 18px; border-radius: 20px; cursor: pointer; font-size: 14px;
+  }
+  .tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 28px 60px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px; margin-bottom: 22px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  }
+  .card h2 { margin: 0 0 14px; font-size: 16px; color: var(--primary-dark); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: .4px; }
+  tr:hover td { background: #f8faff; }
+  form.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; }
+  label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  input, select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px;
+    font-size: 14px; background: #fff; color: var(--text);
+  }
+  input:focus, select:focus { outline: 2px solid #c7d2fe; border-color: var(--primary); }
+  button.primary, button.small {
+    background: var(--primary); color: #fff; border: none; border-radius: 7px;
+    cursor: pointer; padding: 9px 18px; font-size: 14px;
+  }
+  button.primary:hover, button.small:hover { background: var(--primary-dark); }
+  button.small { padding: 5px 12px; font-size: 12.5px; }
+  button.danger { background: #fee2e2; color: var(--red); }
+  button.danger:hover { background: #fecaca; }
+  button.warn { background: #fef3c7; color: var(--amber); }
+  button.warn:hover { background: #fde68a; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge.on { background: #dcfce7; color: var(--green); }
+  .badge.off { background: #fee2e2; color: var(--red); }
+  .badge.active { background: #dbeafe; color: var(--primary-dark); }
+  .badge.returned { background: #e5e7eb; color: var(--muted); }
+  .badge.overdue { background: #fee2e2; color: var(--red); }
+  .fine { color: var(--red); font-weight: 600; }
+  .fine.zero { color: var(--green); }
+  .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar select { width: auto; }
+  .muted { color: var(--muted); }
+  .empty { color: var(--muted); font-style: italic; padding: 10px 2px; }
+  #toast {
+    position: fixed; right: 22px; bottom: 22px; z-index: 50; max-width: 420px;
+    background: #111827; color: #fff; padding: 12px 18px; border-radius: 9px;
+    font-size: 13.5px; box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    opacity: 0; transform: translateY(8px); transition: all .25s ease; pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.error { background: var(--red); }
+  #toast.ok { background: var(--green); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📚 Library Management System</h1>
+  <p>Loan period: <strong>14 days</strong> &nbsp;·&nbsp; Late fine: <strong>5,000 Toman per day</strong> after the due date</p>
+</header>
+
+<nav>
+  <button class="tab active" data-tab="users">Users</button>
+  <button class="tab" data-tab="books">Books</button>
+  <button class="tab" data-tab="loans">Loans</button>
+  <button class="tab" data-tab="reports">Reports</button>
+</nav>
+
+<main>
+  <!-- ================= USERS ================= -->
+  <section id="panel-users" class="panel active">
+    <div class="card">
+      <h2>Add user</h2>
+      <form id="user-form" class="grid">
+        <div><label for="u-name">Name *</label><input id="u-name" required placeholder="Full name"></div>
+        <div><label for="u-email">Email *</label><input id="u-email" type="email" required placeholder="name@example.com"></div>
+        <div><label for="u-phone">Phone</label><input id="u-phone" placeholder="Optional"></div>
+        <div><label for="u-joined">Join date</label><input id="u-joined" type="date"></div>
+        <div><button class="primary" type="submit">Add user</button></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Registered users</h2>
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th><th>Active loans</th><th>Actions</th></tr></thead>
+        <tbody id="users-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= BOOKS ================= -->
+  <section id="panel-books" class="panel">
+    <div class="card">
+      <h2>Add book</h2>
+      <form id="book-form" class="grid">
+        <div><label for="b-title">Title *</label><input id="b-title" required placeholder="Book title"></div>
+        <div><label for="b-author">Author *</label><input id="b-author" required placeholder="Author"></div>
+        <div><label for="b-isbn">ISBN</label><input id="b-isbn" placeholder="Optional"></div>
+        <div><label for="b-copies">Total copies *</label><input id="b-copies" type="number" min="1" value="1" required></div>
+        <div><button class="primary" type="submit">Add book</button></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Catalog</h2>
+      <table>
+        <thead><tr><th>ID</th><th>Title</th><th>Author</th><th>ISBN</th><th>Available</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="books-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= LOANS ================= -->
+  <section id="panel-loans" class="panel">
+    <div class="card">
+      <h2>Borrow a book</h2>
+      <form id="borrow-form" class="grid">
+        <div><label for="l-user">User *</label><select id="l-user" required></select></div>
+        <div><label for="l-book">Book *</label><select id="l-book" required></select></div>
+        <div><button class="primary" type="submit">Borrow</button></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Loans</h2>
+      <div class="toolbar">
+        <label class="muted" for="f-user">User:</label>
+        <select id="f-user"><option value="">All users</option></select>
+        <label class="muted" for="f-status">Status:</label>
+        <select id="f-status">
+          <option value="all">All</option>
+          <option value="active">Active only</option>
+          <option value="overdue">Overdue only</option>
+        </select>
+      </div>
+      <table>
+        <thead><tr><th>ID</th><th>User</th><th>Book</th><th>Borrowed</th><th>Due</th><th>Returned</th><th>Status</th><th>Days late</th><th>Fine (Toman)</th><th>Action</th></tr></thead>
+        <tbody id="loans-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= REPORTS ================= -->
+  <section id="panel-reports" class="panel">
+    <div class="card">
+      <h2>Overdue loans</h2>
+      <table>
+        <thead><tr><th>Loan</th><th>User</th><th>Book</th><th>Due date</th><th>Days overdue</th><th>Current fine (Toman)</th></tr></thead>
+        <tbody id="overdue-body"></tbody>
+      </table>
+      <div id="overdue-empty" class="empty" hidden>No overdue loans 🎉</div>
+    </div>
+    <div class="card">
+      <h2>Total fines per user</h2>
+      <table>
+        <thead><tr><th>User</th><th>Settled fines (returned)</th><th>Accruing fines (open)</th><th>Total (Toman)</th></tr></thead>
+        <tbody id="fines-body"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+const API = '/api';
+let allLoans = [];   // cached loan rows for client-side filtering
+let allUsers = [];   // cached users for selects and filters
+
+/* ---------- helpers ---------- */
+
+async function api(path, options = {}) {
+  const res = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  });
+  if (res.status === 204) return null;
+  let body = null;
+  try { body = await res.json(); } catch (_) { /* no body */ }
+  if (!res.ok) {
+    let msg = `Request failed (${res.status})`;
+    if (body) {
+      if (body.message) msg = body.message;
+      if (body.fieldErrors && Object.keys(body.fieldErrors).length) {
+        msg += ': ' + Object.values(body.fieldErrors).join('; ');
+      }
+    }
+    throw new Error(msg);
+  }
+  return body;
+}
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => Number(n || 0).toLocaleString('en-US');
+const $ = sel => document.querySelector(sel);
+
+let toastTimer;
+function toast(message, kind = 'ok') {
+  const el = $('#toast');
+  el.textContent = message;
+  el.className = 'show ' + kind;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3800);
+}
+
+/* ---------- users ---------- */
+
+async function loadUsers() {
+  allUsers = await api('/users');
+  $('#users-body').innerHTML = allUsers.map(u => `
+    <tr>
+      <td>${u.id}</td><td>${esc(u.name)}</td><td>${esc(u.email)}</td>
+      <td>${esc(u.phone || '—')}</td><td>${esc(u.joinedAt)}</td><td>${u.activeLoans}</td>
+      <td>
+        <button class="small" onclick="showUserLoans(${u.id})">Loans</button>
+        <button class="small danger" onclick="deleteUser(${u.id}, '${esc(u.name)}')">Delete</button>
+      </td>
+    </tr>`).join('');
+  // refresh both user selects
+  const options = allUsers.map(u => `<option value="${u.id}">${esc(u.name)}</option>`).join('');
+  $('#l-user').innerHTML = options;
+  $('#f-user').innerHTML = '<option value="">All users</option>' + options;
+}
+
+async function deleteUser(id, name) {
+  if (!confirm(`Delete user "${name}"? Their returned-loan history will be removed too.`)) return;
+  try {
+    await api('/users/' + id, { method: 'DELETE' });
+    toast(`User "${name}" deleted`);
+    await Promise.all([loadUsers(), loadLoans()]);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function showUserLoans(userId) {
+  switchTab('loans');
+  $('#f-user').value = String(userId);
+  renderLoans();
+}
+
+/* ---------- books ---------- */
+
+async function loadBooks() {
+  const books = await api('/books');
+  $('#books-body').innerHTML = books.map(b => `
+    <tr>
+      <td>${b.id}</td><td>${esc(b.title)}</td><td>${esc(b.author)}</td><td>${esc(b.isbn || '—')}</td>
+      <td>${b.availableCopies} / ${b.totalCopies}</td>
+      <td>${b.available
+        ? '<span class="badge on">Available</span>'
+        : '<span class="badge off">Unavailable</span>'}</td>
+      <td><button class="small danger" onclick="deleteBook(${b.id}, '${esc(b.title)}')">Delete</button></td>
+    </tr>`).join('');
+  // borrow select: only books with at least one copy on the shelf
+  $('#l-book').innerHTML = books.map(b =>
+    `<option value="${b.id}" ${b.available ? '' : 'disabled'}>${esc(b.title)} — ${esc(b.author)} (${b.availableCopies} available)</option>`
+  ).join('');
+}
+
+async function deleteBook(id, title) {
+  if (!confirm(`Delete book "${title}"?`)) return;
+  try {
+    await api('/books/' + id, { method: 'DELETE' });
+    toast(`Book "${title}" deleted`);
+    await Promise.all([loadBooks(), loadLoans()]);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+/* ---------- loans ---------- */
+
+async function loadLoans() {
+  allLoans = await api('/loans');
+  renderLoans();
+}
+
+function loanRow(l) {
+  const status = l.status === 'RETURNED'
+    ? (l.overdue ? '<span class="badge overdue">RETURNED LATE</span>' : '<span class="badge returned">RETURNED</span>')
+    : (l.overdue ? '<span class="badge overdue">OVERDUE</span>' : '<span class="badge active">ACTIVE</span>');
+  const fine = l.fineAmount > 0
+    ? `<span class="fine">${money(l.fineAmount)}</span>`
+    : '<span class="fine zero">0</span>';
+  const action = l.status === 'ACTIVE'
+    ? `<button class="small warn" onclick="returnBook(${l.id}, '${esc(l.bookTitle)}', ${l.fineAmount})">Return</button>`
+    : '<span class="muted">—</span>';
+  return `<tr>
+      <td>${l.id}</td><td>${esc(l.userName)}</td><td>${esc(l.bookTitle)}</td>
+      <td>${esc(l.borrowDate)}</td><td>${esc(l.dueDate)}</td><td>${esc(l.returnDate || '—')}</td>
+      <td>${status}</td><td>${l.overdueDays}</td><td>${fine}</td><td>${action}</td>
+    </tr>`;
+}
+
+function renderLoans() {
+  const user = $('#f-user').value;
+  const status = $('#f-status').value;
+  const rows = allLoans.filter(l =>
+    (!user || l.userId === Number(user)) &&
+    (status === 'all' ||
+      (status === 'active' && l.status === 'ACTIVE') ||
+      (status === 'overdue' && l.status === 'ACTIVE' && l.overdue)));
+  $('#loans-body').innerHTML = rows.map(loanRow).join('') ||
+    '<tr><td colspan="10" class="empty">No loans match the current filters.</td></tr>';
+}
+
+async function returnBook(id, title, currentFine) {
+  const fineNote = currentFine > 0
+    ? `\nA fine of ${money(currentFine)} Toman will be recorded.` : '';
+  if (!confirm(`Return "${title}" now?${fineNote}`)) return;
+  try {
+    const loan = await api(`/loans/${id}/return`, { method: 'PUT' });
+    toast(loan.fineAmount > 0
+      ? `"${title}" returned — fine: ${money(loan.fineAmount)} Toman`
+      : `"${title}" returned on time, no fine`);
+    await Promise.all([loadLoans(), loadBooks(), loadUsers()]);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+/* ---------- reports ---------- */
+
+async function loadReports() {
+  const overdue = await api('/loans/overdue');
+  $('#overdue-empty').hidden = overdue.length > 0;
+  $('#overdue-body').innerHTML = overdue.map(l => `
+    <tr>
+      <td>${l.id}</td><td>${esc(l.userName)}</td><td>${esc(l.bookTitle)}</td>
+      <td>${esc(l.dueDate)}</td><td>${l.overdueDays}</td>
+      <td><span class="fine">${money(l.fineAmount)}</span></td>
+    </tr>`).join('');
+
+  const fines = await Promise.all(allUsers.map(u => api(`/users/${u.id}/fines`)));
+  $('#fines-body').innerHTML = fines.map(f => `
+    <tr>
+      <td>${esc(f.userName)}</td>
+      <td>${money(f.settledFine)}</td>
+      <td>${money(f.accruingFine)}</td>
+      <td><strong class="${f.totalFine > 0 ? 'fine' : 'fine zero'}">${money(f.totalFine)}</strong></td>
+    </tr>`).join('');
+}
+
+/* ---------- forms ---------- */
+
+$('#user-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = {
+    name: $('#u-name').value.trim(),
+    email: $('#u-email').value.trim(),
+    phone: $('#u-phone').value.trim() || null,
+    joinedAt: $('#u-joined').value || null,
+  };
+  try {
+    const u = await api('/users', { method: 'POST', body: JSON.stringify(body) });
+    toast(`User "${u.name}" added (id ${u.id})`);
+    e.target.reset();
+    await loadUsers();
+  } catch (err) { toast(err.message, 'error'); }
+});
+
+$('#book-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = {
+    title: $('#b-title').value.trim(),
+    author: $('#b-author').value.trim(),
+    isbn: $('#b-isbn').value.trim() || null,
+    totalCopies: Number($('#b-copies').value),
+  };
+  try {
+    const b = await api('/books', { method: 'POST', body: JSON.stringify(body) });
+    toast(`Book "${b.title}" added (id ${b.id})`);
+    e.target.reset();
+    await loadBooks();
+  } catch (err) { toast(err.message, 'error'); }
+});
+
+$('#borrow-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = { userId: Number($('#l-user').value), bookId: Number($('#l-book').value) };
+  if (!body.userId || !body.bookId) { toast('Select a user and a book first', 'error'); return; }
+  try {
+    const loan = await api('/loans', { method: 'POST', body: JSON.stringify(body) });
+    toast(`"${loan.bookTitle}" borrowed by ${loan.userName} — due ${loan.dueDate}`);
+    await Promise.all([loadLoans(), loadBooks(), loadUsers()]);
+  } catch (err) { toast(err.message, 'error'); }
+});
+
+$('#f-user').addEventListener('change', renderLoans);
+$('#f-status').addEventListener('change', renderLoans);
+
+/* ---------- tabs ---------- */
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach(p =>
+    p.classList.toggle('active', p.id === 'panel-' + name));
+  if (name === 'reports') loadReports().catch(e => toast(e.message, 'error'));
+}
+document.querySelectorAll('.tab').forEach(t =>
+  t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+/* ---------- init ---------- */
+
+(async function init() {
+  try {
+    await loadUsers();
+    await loadBooks();
+    await loadLoans();
+  } catch (e) { toast('Failed to load data: ' + e.message, 'error'); }
+})();
+</script>
+</body>
+</html>
